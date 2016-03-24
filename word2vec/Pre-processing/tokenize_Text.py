@@ -4,7 +4,7 @@ Created on 22 Mar 2016
 @author: Billy
 '''
 from tools import utilities
-import getopt,sys,os
+import getopt,sys,os,re
 class CommandLine:
     def __init__(self):
         opts, args = getopt.getopt(sys.argv[1:],'hi:n:qf')
@@ -32,7 +32,7 @@ class CommandLine:
 if __name__ == "__main__":
     config = CommandLine()
     util = utilities()
-    N = 2
+    N = 100000
     
     #print re.escape("name=&quot;kgm&quot;/&gt;")
     for i, chunk in enumerate(util.read_in_chunks(config.inputFile, N)):
@@ -41,6 +41,10 @@ if __name__ == "__main__":
             #print item
             item = item.encode('utf-8')
             result = util.SentenceTokenize(item)
+            
+            #quick fix for treebank treat " as '' 
+            result = [re.sub(r'\`\`|\'\'','\"',word) for word in result]
+
             SentenceList.append(result)
             #resText = " ".join(result)
         util.writeListOfList2File(config.outputfile, SentenceList)

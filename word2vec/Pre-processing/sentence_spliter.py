@@ -1,9 +1,13 @@
-from nltk.tokenize import sent_tokenize
-from tools import utilities
-
 import getopt,sys,os
+from nltk.tokenize import sent_tokenize
+
+sys.path.insert(0, '../tools/')
+from utilities import utilities
+
 reload(sys)  
 sys.setdefaultencoding('utf-8')
+
+
 
 class CommandLine:
     def __init__(self):

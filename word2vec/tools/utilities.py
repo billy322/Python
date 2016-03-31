@@ -112,9 +112,13 @@ class utilities:
     def writeListOfList2File(self, fname,inputList):
         # write list of list to file, one item per line
         print "wrting file to list",fname
-        with open(fname, 'ab') as f:
+        with io.open(fname, 'a', encoding='utf-8') as f:
             for item in inputList:
-                f.write("".join(item) + "\n")
+                #print item
+                text = " ".join(item)
+                #print text
+                text = unicode(text, encoding='utf-8', errors='ignore')
+                f.write(text + "\n")
     #     import csv
     #     with open(fname, 'ab') as f:
     #         writer = csv.writer(f,delimiter=" ", quoting=csv.QUOTE_NONE, quotechar='')
@@ -160,7 +164,7 @@ class utilities:
     def writeText2File (self, fname, text):
         with io.open(fname, 'a', encoding='utf-8') as f:
             print text
-            f.write(text)
+            f.write(unicode(text, encoding='utf-8', errors='ignore'))
             f.write(u'\n')
             f.close()
                 

@@ -3,7 +3,9 @@ Created on 22 Mar 2016
 
 @author: Billy
 '''
-from tools import utilities
+sys.path.insert(0, '../tools/')
+from utilities import utilities
+
 import getopt,sys,os,re
 class CommandLine:
     def __init__(self):

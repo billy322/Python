@@ -3,10 +3,11 @@ Created on 22 Mar 2016
 
 @author: Billy
 '''
+import getopt,sys,os,re
 sys.path.insert(0, '../tools/')
 from utilities import utilities
 
-import getopt,sys,os,re
+
 class CommandLine:
     def __init__(self):
         opts, args = getopt.getopt(sys.argv[1:],'hi:n:qf')

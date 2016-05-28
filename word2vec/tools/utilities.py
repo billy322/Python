@@ -39,8 +39,8 @@ class utilities:
         
     def readFile(self, filePath):
         print "reading",filePath
-        with open(filePath, 'r') as myfile:
-            data=myfile.read()
+        with io.open(filePath, 'r', encoding='utf-8') as myfile:
+            data=myfile.readlines()
         return data
     
     def readFileLineByLine(self, filePath):

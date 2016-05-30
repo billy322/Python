@@ -8,8 +8,13 @@ from gensim import utils, matutils
 import numpy
 #from gensim.models.word2vec import Word2Vec
 from word2vec import Word2Vec
+import io
 
-
+def writeList2File(fname, resList):
+    with io.open(fname, 'a', encoding='utf-8') as f:
+        result = ' '.join(item for item in resList)
+        f.write(result + u'\n')
+        
 def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         """
         Find the top-N most similar words. Positive words contribute positively towards the
@@ -33,6 +38,7 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
           [('queen', 0.50882536), ...]
 
         """
+        logger = logging
         if not topn: 
             topN=10  # force to return top10 for direction matching 
         else:
@@ -81,12 +87,19 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         best = matutils.argsort(dists, topn=topN , reverse=True) #dists contain sim score for whole w2v, get index from dists = word index 
         # ignore (don't return) words from the input
         result = [(self.index2word[sim], float(dists[sim])) for sim in best if sim not in all_words]
+        writeList2File("distance.txt", [self.index2word[sim] for sim in best if sim not in all_words])
         logger.debug(" ") 
         logger.debug("Distance: %s", result) 
         # restore a, b : c, d
+#         a = negative[0][0]
+#         b = positive[0][0]
+#         d_c = [item[0] for item in result] + [positive[1][0]] # c is the last item 
         a = negative[0][0]
         b = positive[0][0]
-        d_c = [item[0] for item in result] + [positive[1][0]] # c is the last item 
+        c = positive[1][0]
+        d = [item[0] for item in result]
+        d_b = d + [b] # c is the last item 
+        d_c = d +[c]
         if [positive[1][0]] in [item[0] for item in result]:
             logger.debug("Contain: %s in %s", [positive[1][0]], \
                          [item[0] for item in result])
@@ -96,7 +109,9 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
 #         print delme2
         
         # After checking direction, return best result 
-        result_dir = most_similar_direction(self, positive = d_c, negative=[b, a], topn=len(result), restrict_vocab=restrict_vocab, vecModel=limited)
+        #result_dir = most_similar_direction(self, positive = d_b, negative=[c, a], topn=len(result), vecModel=limited)
+        result_dir = most_similar_direction(self, positive = d_c, negative=[b, a], topn=len(result), vecModel=limited)
+        #result_dir = most_similar_cosmul_direction(self, positive = d_c, negative=[b, a], topn=len(result), vecModel=limited)
         if result_dir is None:
             result_dir_sort = result
             if not topn:
@@ -109,12 +124,13 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         
         return result_dir_sort[:topn]
 
-def most_similar_direction(self, positive=[], negative=[], topn=False, restrict_vocab=None, vecModel=None):
+def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn=False, vecModel=None):
         """
         this compute pair Direction sim(d-b, c-a)
 
         """
         self.init_sims()
+        logger = logging
         #logger.debug("\t\t========direction===========")  
         #logger.debug("d, c: %s", positive)  
         #logger.debug("b, a: %s", negative)  
@@ -132,7 +148,10 @@ def most_similar_direction(self, positive=[], negative=[], topn=False, restrict_
             (word, -1.0) if isinstance(word, string_types + (ndarray,)) else word
             for word in negative
         ]
-        
+        positiveWordDict = {(positiveWordDict[word], 1.0) if isinstance(word, string_types + (ndarray,)) else word
+            for word in positive}
+        negativeWordDict = {(negativeWordDict[word], 1.0) if isinstance(word, string_types + (ndarray,)) else word
+            for word in negative}
         all_words = set() # store question words
         #limited = [] # store d (i.e. topN words having closest distance with b - a + c from most_similiar)
         tempLimit = numpy.zeros(shape=(vecModel.shape)) #Quick Fix. Fake array to fit into Gensim format
@@ -179,7 +198,7 @@ def most_similar_direction(self, positive=[], negative=[], topn=False, restrict_
             raise KeyError("word '%s' not in vocabulary" % word)   
         
         #dists = dot(limited, mean)  # this is for normal query
-        dists1 = dot(tempLimit, mean)
+        dists1 = dot(tempLimit, mean)  # all row are zero, except those top10 word row
         resIdx = numpy.nonzero(dists1)[0]
         vecDict = {}
         for i in resIdx:
@@ -189,9 +208,10 @@ def most_similar_direction(self, positive=[], negative=[], topn=False, restrict_
         sorted_vecDict = OrderedDict(sorted(vecDict.items(), key=lambda t: t[1], reverse=True))
         best1 = matutils.argsort(dists1, topn=topn, reverse=True)
         #print best1
-        if any(dists1[i] < 0.3 for i in best1):
+        if any(dists1[i] == 0 for i in best1):
             logger.debug("Direction_Bad: %s", \
-                     sorted_vecDict)  
+                     sorted_vecDict) 
+            writeList2File("direction.txt", ["000"])
             return None
         import collections
         if collections.Counter([item[0] for item in positive[:-1]]) != \
@@ -202,19 +222,123 @@ def most_similar_direction(self, positive=[], negative=[], topn=False, restrict_
             sys.exit() 
         
         logger.debug("Direction: %s", \
-                     [(self.index2word[sim], float(dists1[sim])) for sim in best1 if sim not in all_words])        
+                     [(self.index2word[sim], float(dists1[sim])) for sim in best1 if sim not in all_words]) 
+        writeList2File("direction.txt", [self.index2word[sim] for sim in best1 if sim not in all_words])       
         return dists1
 
+def most_similar_cosmul_direction(self, positive=[], negative=[], topn=10, vecModel=None):
+        """
+        .. [4] Omer Levy and Yoav Goldberg. Linguistic Regularities in Sparse and Explicit Word Representations, 2014.
 
+        """
+        self.init_sims()
+        logger = logging
+        tempLimit = numpy.zeros(shape=(vecModel.shape[0])) #Quick Fix. Fake array to fit into Gensim format
+        if isinstance(positive, string_types) and not negative:
+            # allow calls like most_similar_cosmul('dog'), as a shorthand for most_similar_cosmul(['dog'])
+            positive = [positive]
+
+        all_words = set()
+
+        def word_vec(word):
+            if isinstance(word, ndarray):
+                return word
+            elif word in self.vocab:
+                all_words.add(self.vocab[word].index)
+                return self.syn0norm[self.vocab[word].index]
+            else:
+                raise KeyError("word '%s' not in vocabulary" % word)
+
+#         negative = [word_vec(word) for word in negative]
+#         if not positive:
+#             raise ValueError("cannot compute similarity with no input")
+        
+        # equation (4) of Levy & Goldberg "Linguistic Regularities...",
+        # with distances shifted to [0,1] per footnote (7)
+        def positive_Cos(vecA, vecB):
+            result = matutils.unitvec(((1 + dot(vecA, vecB)) / 2)).astype(REAL)
+            #print result
+            return result 
+        
+        wordA = negative[1]
+        wordB = negative[0]
+        wordC = positive[-1]
+        vecA = self.syn0norm[self.vocab[wordA].index] 
+        vecB = self.syn0norm[self.vocab[wordB].index]
+        vecC = self.syn0norm[self.vocab[wordC].index] 
+        B_C = positive_Cos(vecB, vecC)
+        A_B = positive_Cos(vecA, vecB)
+        #print wordA, wordB, wordC, self.vocab[wordA].index, self.vocab[wordB].index, self.vocab[wordC].index
+        # add assessment item
+        all_words.add(self.vocab[wordA].index)
+        all_words.add(self.vocab[wordB].index)
+        all_words.add(self.vocab[wordC].index)
+
+        # get all (d - b) . checked 
+        for word in positive[:-1]: # these are the predict ans (d) and b
+            if isinstance(word, ndarray):
+                vecA = wordA
+                vecB = wordB
+                vecC = wordC
+                vecD = word
+                #limited.append(matutils.unitvec(array([ vecD, vecB ]).mean(axis=0)).astype(REAL))    # mean =  algeria 1.0 vec, algiers -1.0 vec
+                sys.exit() # not yet fixed
+            elif word in self.vocab:
+                vecD = self.syn0norm[self.vocab[word].index]
+                C_D = positive_Cos(vecC, vecD)
+                A_D = positive_Cos(vecA, vecD)
+                tempLimit[self.vocab[word].index] = prod([C_D, A_B], axis=0) / (prod([A_D, B_C], axis=0) + 0.000001)
+            else:
+                raise KeyError("word '%s' not in vocabulary" % word)
+
+        resIdx = numpy.nonzero(tempLimit)[0]
+        vecDict = {}
+        for i in resIdx:
+            #print i 
+            vecDict[self.index2word[i]] = tempLimit[i]
+        from collections import OrderedDict
+        sorted_vecDict = OrderedDict(sorted(vecDict.items(), key=lambda t: t[1], reverse=True))
+        best1 = matutils.argsort(tempLimit, topn=topn, reverse=True)
+
+        if any(tempLimit[i] < 0.3 for i in best1):
+            logger.debug("Direction_Bad: %s", \
+                     sorted_vecDict) 
+            writeList2File("direction.txt", ["000"])
+            return None
+        import collections
+        Dist_Result = [item for item in positive[:-1]]
+        predict_result = [self.index2word[item] for item in best1]
+        if collections.Counter(Dist_Result) != \
+        collections.Counter(predict_result):
+            logger.debug("Fail: %s\n %s\n" \
+                    % (Dist_Result, predict_result))  
+            sys.exit() 
+        
+        logger.debug("Direction: %s", \
+                     [(self.index2word[sim], float(tempLimit[sim])) for sim in best1 if sim not in all_words]) 
+        writeList2File("direction.txt", [self.index2word[sim] for sim in best1 if sim not in all_words])  
+
+       
+        # ignore (don't return) words from the input
+        #result = [(self.index2word[sim], float(tempLimit[sim])) for sim in best if sim not in all_words]
+        return tempLimit
+    
 if __name__ == "__main__":
-    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG) # debug can see comprehensive result: oov and wrong predict
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO) # debug can see comprehensive result: oov and wrong predict
     #logger = logging.getLogger(__name__)
-    logger = logging
+    
+    Clear = open("distance.txt",'w')
+    Clear = open("direction.txt",'w')
+    Clear = open("Result.txt",'w')
     model = Word2Vec.load_word2vec_format(sys.argv[1], binary=True, encoding='iso-8859-1')
     #model = Word2Vec.load('Google_News_Gensim',mmap='r')
-    #accuracy = model.accuracy(sys.argv[2])
+    #accuracy = model.accuracy(sys.argv[2], use_lowercase=False)
 #     print accuracy
-    accuracy = model.accuracy(sys.argv[2], restrict_vocab=30000, most_similar=most_similar) # list return as incorrect, section, correct
+    accuracy = model.accuracy(sys.argv[2], restrict_vocab=30000, most_similar=most_similar, use_lowercase=False) # list return as incorrect, section, correct
+    accResult = [resline.split() \
+                                  for resline in io.open("Result.txt", 'r', encoding='utf-8')]
+            
+    
     #accuracy = model.accuracy(sys.argv[2], restrict_vocab=30000)
 #     for item in accuracy:
 #          for a, b, c, d in item["incorrect"]:

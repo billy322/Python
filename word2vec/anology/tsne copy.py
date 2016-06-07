@@ -19,6 +19,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import os  
 import io  
 from sklearn.decomposition import PCA
+
 #import tempfile
 #os.environ['MPLCONFIGDIR'] = tempfile.mkdtemp()
 import matplotlib 
@@ -28,7 +29,8 @@ import matplotlib
 import pylab as Plot
 import sys
 import math
-from gensim.models.word2vec import Word2Vec
+from word2vec import Word2Vec
+#from gensim.models.word2vec import Word2Vec
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
@@ -259,14 +261,14 @@ def combineW2V(type, vec):
 	line_prepender('test.txt', headText)
 	    		    	
 def writeAnRes(accuracy, target):
-	f = open(sys.argv[3],'w')
+	f = open("analogy_res.txt",'w')
 	for item in accuracy:
  		for a, b, c, d in item[target]:
  			if item['section'] != "total":
  				test = model.most_similar(positive=[b, c], negative=[a], topn=10)
  				topNres = ' '.join([word[0] for word in test])
  				res = " ".join(["%s:%s %s %s %s " % (item['section'], a, b, c, d)]) + topNres+ "\n"
- 				write2file(res, sys.argv[3])
+ 				write2file(res, "analogy_res.txt")
  				
 def line_prepender(fname, headTxt):
 	with io.open(fname, "r+", encoding='utf-8') as f: 
@@ -352,98 +354,92 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
        
 	        		
 if __name__ == "__main__":
-    from wvlib import wvlib
-    from wvlib import evalrank as eva
     logging.basicConfig(stream=sys.stdout, level=logging.INFO) # debug can see comprehensive result: oov and wrong predict
     test_words =[]
+    import analogy as analogy
 	# load model
  	#sys.argv 1: model 2: analogy question 3: res 4: word 5: vector
  	
  	# create analogy result
- 	model = Word2Vec.load_word2vec_format(sys.argv[1], binary=True)
- #	model = Word2Vec.load('Google_News_Gensim',mmap='r')
- 	#print sys.argv[1]
- 	accuracy = model.accuracy(sys.argv[2],restrict_vocab=30000, most_similar=most_similar) # list return as incorrect, section, correct
- 	trained_model.n_similarity(['sushi', 'shop'], ['japanese', 'restaurant'])
- 	trained_model.most_similar_cosmul
- 	# write Analogy result to file
- 	#writeAnRes(accuracy, 'correct')
+    model = Word2Vec.load_word2vec_format(sys.argv[1], binary=True, encoding='iso-8859-1')
+    accuracy = model.accuracy(sys.argv[2], restrict_vocab=30000, most_similar=analogy.most_similar, use_lowercase=False) # list return as incorrect, section, correct # list return as incorrect, section, correct
+    print accuracy[0]
+    # write Analogy result to file
+    writeAnRes(accuracy, 'incorrect')
    		
    	# read analogy result file
-#  	fullList = []
-# 	with io.open(sys.argv[3], 'r', encoding='utf-8') as infile:
-# 		for line in infile.readlines():	
-# 			test_words = line.split(":", 1)[1].split()
-#    			fullList.append(test_words)
-#   	
-#   	#writeVec2file(fullList)
-#   	
-#   	# read type and vector to form word2vec
-#   	#combineW2V(sys.argv[4], sys.argv[5])
-#   	
+    fullList = []
+    with io.open("analogy_res.txt", 'r', encoding='utf-8') as infile:
+		for line in infile.readlines():	
+			test_words = line.split(":", 1)[1].split()
+   			fullList.append(test_words)
+   	
+  	#writeVec2file(fullList)
+   	
+  	# read type and vector to form word2vec
+  	#combineW2V(sys.argv[4], sys.argv[5])
+   	
 #     # visualise vector
 # 	#model = Word2Vec.load_word2vec_format(sys.argv[1], binary=True)
 # 	#model.save('Google_News_Gensim')
 # 	
 # 	#later load the model
 # 	model = Word2Vec.load('Google_News_Gensim',mmap='r')
-# 	pdf = matplotlib.backends.backend_pdf.PdfPages("incorrect.pdf")
-# 	#figName=[]
-# 	#for i in range(3):
-# 	for i, ans in enumerate(fullList):
-# 		#figName.append("figure"+str(i))
-# 		plt.figure(i)
-# 		
-# 		#print fullList
-# 		testVec, testType = getWordVecs(fullList[i], model)
-# 		
-# 		print len(fullList[i]), len(testVec)
-# 		#reduced_vecs = pca(testVec, 2)
-#    		reduced_vecs = runPCA(testVec, 50)
-# 
-# 		print len(fullList[i]), len(reduced_vecs)
-# 		#reduced_vecs = ts.fit_transform(np.concatenate((food_vecs, sports_vecs, weather_vecs)))
-		#color points by word group to see if Word2Vec can separate them
-# 		plt.scatter(reduced_vecs[:,0], reduced_vecs[:,1], s=0.1)
-# 		for t, item in enumerate(fullList[i]):
-# 			item = item
-# 			print item, reduced_vecs[t,0], reduced_vecs[t,1], t
-# 			if t <=  2: # question 
-# 				print "Case1"
-# 				plt.annotate(
-# 							item, color="green",
-# 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
-# 							textcoords = None,
-# 							bbox = None,
-# 							arrowprops = None, size=10)
-# 			elif t == 3: # ground truth
-# 				# if arrow not match point color, mean this point also belong to the group of that color
-# 				print "Case2"
-# 				plt.annotate(
-# 							item, color="blue", 
-# 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
-# 							textcoords = None,
-# 							bbox = None,
-# 							arrowprops = dict(facecolor='blue', shrink=0.05), size=10)  
-# 			elif t == 4: # predict answer
-# 				print "Case3"
-# 				plt.annotate(
-# 							item, color="black",
-# 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
-# 							textcoords = None,
-# 							bbox = None,
-# 							arrowprops = None, size=10)
-# 			elif t > 4:
-# 				print "Case4" # topN result
-# 				plt.annotate(
-# 							item, color="red",
-# 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
-# 							textcoords = None,
-# 							bbox = None,
-# 							arrowprops = None, size=10)
-# 	for i in plt.get_fignums():
-# 		pdf.savefig( plt.figure(i) )
-# 	pdf.close()
-# 	#figs = list(map(plt.figure, plt.get_fignums())
-# 	
-# 	plt.show()
+    pdf = matplotlib.backends.backend_pdf.PdfPages("incorrect.pdf")
+ 	#for i in range(3):
+    for i, ans in enumerate(fullList):
+ 		#figName.append("figure"+str(i))
+ 		plt.figure(i)
+ 		
+ 		#print fullList
+ 		testVec, testType = getWordVecs(fullList[i], model)
+ 		
+ 		print len(fullList[i]), len(testVec)
+ 		reduced_vecs = runPCA(testVec, 2)
+        #reduced_vecs = runPCA(testVec, 50)
+ 
+ 		print len(fullList[i]), len(reduced_vecs)
+ 		#reduced_vecs = ts.fit_transform(np.concatenate((food_vecs, sports_vecs, weather_vecs)))
+ 		plt.scatter(reduced_vecs[:,0], reduced_vecs[:,1], s=0.1)
+ 		for t, item in enumerate(fullList[i]):
+ 			item = item
+ 			print item, reduced_vecs[t,0], reduced_vecs[t,1], t
+ 			if t <=  2: # question 
+ 				print "Case1"
+ 				plt.annotate(
+ 							item, color="green",
+ 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
+ 							textcoords = None,
+ 							bbox = None,
+ 							arrowprops = None, size=10)
+ 			elif t == 3: # ground truth
+ 				# if arrow not match point color, mean this point also belong to the group of that color
+ 				print "Case2"
+ 				plt.annotate(
+ 							item, color="blue", 
+ 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
+ 							textcoords = None,
+ 							bbox = None,
+ 							arrowprops = dict(facecolor='blue', shrink=0.05), size=10)  
+ 			elif t == 4: # predict answer
+ 				print "Case3"
+ 				plt.annotate(
+ 							item, color="black",
+ 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
+ 							textcoords = None,
+ 							bbox = None,
+ 							arrowprops = None, size=10)
+ 			elif t > 4:
+ 				print "Case4" # topN result
+ 				plt.annotate(
+ 							item, color="red",
+ 							xy = (reduced_vecs[t,0], reduced_vecs[t,1]), xytext = None,
+ 							textcoords = None,
+ 							bbox = None,
+ 							arrowprops = None, size=10)
+    for i in plt.get_fignums():
+ 		pdf.savefig( plt.figure(i) )
+    pdf.close()
+    #plt.show()
+ 	#figs = list(map(plt.figure, plt.get_fignums())
+ 	

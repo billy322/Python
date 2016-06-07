@@ -92,16 +92,16 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         logger.debug(" ") 
         logger.debug("Distance: %s", result) 
         #print result
-        # restore a, b : c, d
+        # restore a, c : b, d
 #         a = negative[0][0]
 #         b = positive[0][0]
 #         d_c = [item[0] for item in result] + [positive[1][0]] # c is the last item 
         a = negative[0][0]
-        b = positive[0][0]
-        c = positive[1][0]
+        b = positive[1][0]
+        c = positive[0][0]
         d = [item[0] for item in result]
-        fullVariable = [a] + [b] +[c] + d
-        d_b = d + [b] # c is the last item 
+        fullVariable = [a] + [b] + [c] + d
+        #d_b = d + [b] # c is the last item 
         d_c = d +[c]
         if [positive[1][0]] in [item[0] for item in result]:
             logger.debug("Contain: %s in %s", [positive[1][0]], \
@@ -168,90 +168,93 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
                 all_words.add(wordCIndex)
             else: 
                 wordD_list.append(fullVariable[i])
-        
+        #print wordA, wordB, wordC
         # add assessment item  Validated version 
          ##get all (d - b) . checked 
-#         tempLimit = numpy.zeros(shape=(vecModel.shape)) #Quick Fix. Fake array to fit into Gensim format
-#         for word in wordD_list: # these are the predict ans (d) and b
-#               if isinstance(word, ndarray):
-#                   sys.exit() # not yet fixed
-#               elif word in self.vocab:
-#                   wordD_weight, wordDIndex, vecD = getData(word)
-#                   vecD_weight = wordD_weight * vecD
-#                   vecB_weight = wordB_weight * vecB
-#                   #print "fist", wordD_weight, wordDIndex, vecD_weight[1:4] , word
-#                   #limited.append(matutils.unitvec(array([ vecD, vecB ]).mean(axis=0)).astype(REAL))    # mean =  algeria 1.0 vec, algiers -1.0 vec 
-#                   tempLimit[wordDIndex] = matutils.unitvec(array([ vecD_weight, vecB_weight ]).mean(axis=0)).astype(REAL)
-#               else:
-#                   raise KeyError("word '%s' not in vocabulary" % word)
-#                   
-#           # compute c - a 
-#         if isinstance(wordC, ndarray) and isinstance(wordA, ndarray): 
-#               sys.exit() # not yet fixed
-#         elif wordC in self.vocab and wordA in self.vocab:
-#              vecA_weight = wordA_weight * vecA 
-#              vecC_weight = wordC_weight * vecC
-#              mean = matutils.unitvec(array([ vecC_weight, vecA_weight ]).mean(axis=0)).astype(REAL)  # mean of c - a    
-#         else:
-#               raise KeyError("word '%s' not in vocabulary" % word) 
-#         dists1 = dot(tempLimit, mean)  # all row are zero, except those top10 word row  
-#         resIdx = numpy.nonzero(dists1)[0].tolist()
-#         vecDict = {}
-#         for i in resIdx:
-#             vecDict[self.index2word[i]] = dists1[i]
-#         from collections import OrderedDict
-#         sorted_vecDict = OrderedDict(sorted(vecDict.items(), key=lambda t: t[1], reverse=True))
+        tempLimit = numpy.zeros(shape=(vecModel.shape)) #Quick Fix. Fake array to fit into Gensim format
+        for word in wordD_list: # these are the predict ans (d) and b
+              if isinstance(word, ndarray):
+                  sys.exit() # not yet fixed
+              elif word in self.vocab:
+                  wordD_weight, wordDIndex, vecD = getData(word)
+                  vecD_weight = wordD_weight * vecD
+                  vecB_weight = wordB_weight * vecB
+                  tempLimit[wordDIndex] = matutils.unitvec(array([ vecD_weight, vecB_weight ]).mean(axis=0)).astype(REAL)
+              else:
+                  raise KeyError("word '%s' not in vocabulary" % word)
+                   
+          # compute c - a 
+        if isinstance(wordC, ndarray) and isinstance(wordA, ndarray): 
+              sys.exit() # not yet fixed
+        elif wordC in self.vocab and wordA in self.vocab:
+             vecA_weight = wordA_weight * vecA 
+             vecC_weight = wordC_weight * vecC
+             mean = matutils.unitvec(array([ vecC_weight, vecA_weight ]).mean(axis=0)).astype(REAL)  # mean of c - a    
+        else:
+              raise KeyError("word '%s' not in vocabulary" % word) 
+        dists1 = dot(tempLimit, mean)  # all row are zero, except those top10 word row  
+        resIdx = numpy.nonzero(dists1)[0].tolist()
+        vecDict = {}
+        for i in resIdx:
+            vecDict[self.index2word[i]] = dists1[i]
+        from collections import OrderedDict
+        sorted_vecDict = OrderedDict(sorted(vecDict.items(), key=lambda t: t[1], reverse=True))
 
         
         # debug version :        
-        tempLimit1 = numpy.zeros(shape=(vecModel.shape[0])) #Quick Fix. Fake array to fit into Gensim format
-        scoreSection= dict()
-        B_C = dot(vecB,vecC)
-        B_A = dot(vecB,vecA)
-        for word in wordD_list: # these are the predict ans (d) and b
-             if isinstance(word, ndarray):
-#                  vecA = wordA
-                 #limited.append(matutils.unitvec(array([ vecD, vecB ]).mean(axis=0)).astype(REAL))    # mean =  algeria 1.0 vec, algiers -1.0 vec
-                 sys.exit() # not yet fixed
-             elif word in self.vocab:
-                 wordD_weight, wordDIndex, vecD = getData(word)
-                 #print wordD_weight, wordDIndex, vecD[1:4] , word
-                 D_C = dot(vecD,vecC)
-                 D_A = dot(vecD,vecA)
-                 D_B = dot(vecD,vecB)
-                 C_A = dot(vecC,vecA)
-                 totalScore =  D_B#(D_C - D_A - B_C + B_A) / (numpy.linalg.norm(vecD - vecB) * numpy.linalg.norm(vecC - vecA))
-                 totalScoreText = str(D_C) +" "+ str(D_B)+ " "+ str(D_A) +" "+\
-                  str(B_C) +" "+ str(C_A) +" " + str(B_A) +" " + str(totalScore)
-                 tempLimit1[self.vocab[word].index] = totalScore
-                 scoreSection[self.vocab[word].index] = totalScoreText
-             else:
-                 raise KeyError("word '%s' not in vocabulary" % word)
-        dists2 = tempLimit1
-        resIdx2 = numpy.nonzero(dists2)[0].tolist()
-             
-        vecDict2 = {}
-        for i in resIdx2:
-            vecDict2[self.index2word[i]] = scoreSection[i]
-        from collections import OrderedDict
-        sorted_vecDict2 = OrderedDict(sorted(vecDict2.items(), key=lambda t: t[1], reverse=True))
-
-        best_temp3 = matutils.argsort(dists2, topn=topn, reverse=True).tolist()
-        best_temp0 = matutils.argsort(dists1, topn=topn, reverse=True).tolist()
-        
-        if best_temp0 != best_temp3:
-            #print "different argmax result:", fullVariable
-            print [item for item in best_temp0] 
-            print [item for item in best_temp3] 
-            sys.exit()
-        else:
-            dists1 = dists2
-            sorted_vecDict = sorted_vecDict2
+#         tempLimit1 = numpy.zeros(shape=(vecModel.shape[0])) #Quick Fix. Fake array to fit into Gensim format
+#         scoreSection= dict()
+#         u = (vecC - vecA ) / (numpy.linalg.norm(vecC - vecA))
+#         #print wordA, wordC, u
+#         with open("temp.txt", "ab") as text_file:
+#             text_file.write(wordC +"-"+ wordA +" "+ " ".join(str(item) for item in u) +"\n")
+#             text_file.close()
+#         B_C = dot(vecB,vecC)
+#         B_A = dot(vecB,vecA)
+#         for word in wordD_list: # these are the predict ans (d) and b
+#              if isinstance(word, ndarray):
+# #                  vecA = wordA
+#                  #limited.append(matutils.unitvec(array([ vecD, vecB ]).mean(axis=0)).astype(REAL))    # mean =  algeria 1.0 vec, algiers -1.0 vec
+#                  sys.exit() # not yet fixed
+#              elif word in self.vocab:
+#                  wordD_weight, wordDIndex, vecD = getData(word)
+#                  #print wordD_weight, wordDIndex, vecD[1:4] , word
+#                  D_C = dot(vecD,vecC)
+#                  D_A = dot(vecD,vecA)
+#                  D_B = dot(vecD,vecB)
+#                  C_A = dot(vecC,vecA)
+#                  totalScore =  (D_C - D_A - B_C + B_A) / (numpy.linalg.norm(vecD - vecB) * numpy.linalg.norm(vecC - vecA))
+#                  totalScoreText = str(D_C) +" "+ str(D_B)+ " "+ str(D_A) +" "+\
+#                   str(B_C) +" "+ str(C_A) +" " + str(B_A) +" " + str(totalScore)
+#                  tempLimit1[self.vocab[word].index] = totalScore
+#                  scoreSection[self.vocab[word].index] = totalScoreText
+#              else:
+#                  raise KeyError("word '%s' not in vocabulary" % word)
+#         dists2 = tempLimit1
+#         resIdx2 = numpy.nonzero(dists2)[0].tolist()
+#              
+#         vecDict2 = {}
+#         for i in resIdx2:
+#             vecDict2[self.index2word[i]] = scoreSection[i]
+#         from collections import OrderedDict
+#         sorted_vecDict2 = OrderedDict(sorted(vecDict2.items(), key=lambda t: t[1], reverse=True))
+# 
+# #         best_temp3 = matutils.argsort(dists2, topn=topn, reverse=True).tolist()
+# #         best_temp0 = matutils.argsort(dists1, topn=topn, reverse=True).tolist()
+# #         
+# #         if best_temp0 != best_temp3:
+# #             #print "different argmax result:", fullVariable
+# #             print [item for item in best_temp0] 
+# #             print [item for item in best_temp3] 
+# #             sys.exit()
+# #         else:
+#         dists1 = dists2
+#         sorted_vecDict = sorted_vecDict2
         
         # combine 
         best1 = matutils.argsort(dists1, topn=topn, reverse=True)
         #print best1
-        if any(dists1[i] <= 0.3 for i in best1):
+        if any(dists1[i] <= 0 for i in best1):
             logger.debug("Direction_Bad: %s", \
                      sorted_vecDict) 
             writeList2File("direction.txt", ["000"])

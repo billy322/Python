@@ -16,6 +16,21 @@ def writeList2File(fname, resList):
         result = ' '.join(item for item in resList)
         f.write(result + u'\n')
         
+def read_word_vecs(filename):
+    wordVectors = {}
+    if filename.endswith('.gz'): fileObject = gzip.open(filename, 'r')
+    else: fileObject = io.open(filename, 'r', encoding='utf-8') #open(filename, 'r')
+    for line in fileObject:
+        line = line.strip()
+        word = line.split()[0]
+        wordVectors[word] = numpy.zeros(len(line.split())-1, dtype=float)
+        tempVec = numpy.array([float(i) for i in line.split()[1:]])
+        ''' normalize weight vector '''
+        wordVectors[word] = tempVec / numpy.linalg.norm(tempVec)
+    
+    sys.stderr.write("Vectors read from: "+filename+" \n")
+    return wordVectors
+
 def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         """
         Find the top-N most similar words. Positive words contribute positively towards the
@@ -97,7 +112,7 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
 #         b = positive[0][0]
 #         d_c = [item[0] for item in result] + [positive[1][0]] # c is the last item 
         a = negative[0][0]
-        b = positive[1][0]
+        b = positive[1][0] 
         c = positive[0][0]
         d = [item[0] for item in result]
         fullVariable = [a] + [b] + [c] + d
@@ -106,6 +121,7 @@ def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         if [positive[1][0]] in [item[0] for item in result]:
             logger.debug("Contain: %s in %s", [positive[1][0]], \
                          [item[0] for item in result])
+        #print a, b, c
         # After checking direction, return best result 
         result_dir = most_similar_direction(self, positive = d_c, negative=[b, a], fullVariable=fullVariable, topn=len(result), vecModel=limited)
         #result_dir = most_similar_cosmul_direction(self, positive = d_c, negative=[b, a], topn=len(result), fullVariable=fullVariable, vecModel=limited)
@@ -131,6 +147,7 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         #logger.debug("\t\t========direction===========")  
         #logger.debug("d, c: %s", positive)  
         #logger.debug("b, a: %s", negative)  
+        
   
         if isinstance(positive, string_types) and not negative:
             # allow calls like most_similar('dog'), as a shorthand for most_similar(['dog'])
@@ -150,7 +167,6 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         
         def getData(word):
             return WordDict[word], self.vocab[word].index, self.syn0norm[self.vocab[word].index] 
-    
  
         wordD_list =[]
         for i, item in enumerate(fullVariable):
@@ -168,7 +184,9 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
                 all_words.add(wordCIndex)
             else: 
                 wordD_list.append(fullVariable[i])
-        #print wordA, wordB, wordC
+        
+        SVD_model = read_word_vecs("SVD.txt")
+        
         # add assessment item  Validated version 
          ##get all (d - b) . checked 
         tempLimit = numpy.zeros(shape=(vecModel.shape)) #Quick Fix. Fake array to fit into Gensim format
@@ -200,7 +218,6 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         from collections import OrderedDict
         sorted_vecDict = OrderedDict(sorted(vecDict.items(), key=lambda t: t[1], reverse=True))
 
-        
         # debug version :        
 #         tempLimit1 = numpy.zeros(shape=(vecModel.shape[0])) #Quick Fix. Fake array to fit into Gensim format
 #         scoreSection= dict()
@@ -254,7 +271,7 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         # combine 
         best1 = matutils.argsort(dists1, topn=topn, reverse=True)
         #print best1
-        if any(dists1[i] <= 0 for i in best1):
+        if any(dists1[i] <= 0.3 for i in best1):
             logger.debug("Direction_Bad: %s", \
                      sorted_vecDict) 
             writeList2File("direction.txt", ["000"])

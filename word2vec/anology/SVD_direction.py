@@ -4,7 +4,8 @@ import io, sys
 from sklearn.utils.extmath import randomized_svd
 from sklearn.decomposition import TruncatedSVD
 from numpy import linalg as LA
-
+from gensim import utils, matutils
+from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL, array
 
 def read_word_vecs(filename):
     wordVectors = {}
@@ -26,12 +27,17 @@ def concateWordVecs(words, model):
     for word1 in words:
         word = word1.replace('\n', '').split("-")
         try:
-            wordAvec = model[word[0]]
-            wordCvec = model[word[1]]
-            C_A_direction = wordCvec - wordAvec / (numpy.linalg.norm(wordCvec - wordAvec))
-            #C_A_direction = matutils.unitvec(array([ vecC_weight, vecA_weight ]).mean(axis=0)).astype(REAL)
+            #print word[0], word[1]
+            wordAvec = model[word[0]] * -1.0 #(model[word[0]] / numpy.linalg.norm(model[word[0]])) * -1.0
+            wordCvec = model[word[1]] #(model[word[1]] / numpy.linalg.norm(model[word[1]]))
+#             print "C", wordCvec[0:5]
+#             print "A", wordAvec[0:5]
+            #C_A_direction = wordCvec - wordAvec / (numpy.linalg.norm(wordCvec - wordAvec))
+            C_A_direction = matutils.unitvec(array([ wordCvec, wordAvec ]).mean(axis=0)).astype(REAL)
+            #C_A_direction = wordCvec + wordAvec
+            #print C_A_direction[0:5]
             vecs.append(C_A_direction.reshape((1,C_A_direction.shape[0])))
-
+            
         except KeyError:
             print "OOV find", word
             continue
@@ -45,7 +51,7 @@ def readQuestion(fname, model):
     with io.open(fname, 'r', encoding='utf-8') as f:
         count = 0
         fileLine = f.readlines()
-        wordDict = dict.fromkeys([questionType.strip("\n") for questionType in fileLine if ":" in questionType])
+        wordDict = dict.fromkeys([questionType.strip("\n").replace(" ","") for questionType in fileLine if ":" in questionType])
         wordList = []
         temp = []
         tempList_counter = -1
@@ -63,25 +69,28 @@ def readQuestion(fname, model):
                     del wordList[:] # empty the list for other category
                     if concatedVec is not None:
                         # skilearn don't have full scale SVD, truncated to min(M,N) of originl M
-#                         U, Sigma, VT = randomized_svd(concatedVec, n_components=4,
-#                                                               n_iter=5,
-#                                                               random_state=0)
-                        U, Sigma, VT = numpy.linalg.svd(concatedVec, full_matrices=False)
+                        U, Sigma, VT = randomized_svd(concatedVec, n_components=min(concatedVec.shape[0],concatedVec.shape[1]),
+                                                              n_iter=5,
+                                                              random_state=0)
+                        #U, Sigma, VT = numpy.linalg.svd(concatedVec, full_matrices=False)
                         # make sure the original matrix can be recovered
                         resume = numpy.dot(U.dot(numpy.diag(Sigma)), VT)
-                        #print U.shape, Sigma.shape, VT.shape, Sigma
+                        #print "U",U.shape, "Sigma", Sigma.shape, "VT", VT.shape
                         if not numpy.allclose(concatedVec,resume):
                             print "fail to recover concated Vector"
                             sys.exit()
                         # take the low-rank K vector:
                         new_Sigma = Sigma[0] 
-                        new_U = U[:, 0] # (item in column 0)
-                        new_VT = VT[0, :] # (item in column 0)
-                        new_U.dot(new_Sigma)
+                        new_U = U[:, 0] # (column 0 access)
+                        new_VT = VT[0] # (row access)
+                        k_U = new_U.dot(new_Sigma)
+                        k_V = new_VT.dot(new_Sigma) #numpy.multiply(new_Sigma,new_VT)#new_VT.dot(new_Sigma)
+                        print "Concated Vec", concatedVec[0:5]
+                        print "kv", k_V[0:5], "new_Sigma", new_Sigma
                         print "put into dict item:", temp[tempList_counter]
-                        wordDict[temp[tempList_counter]] = new_VT.dot(new_Sigma) # top singular right vector
+                        wordDict[temp[tempList_counter]] = k_V # top singular right vector
                 tempList_counter +=1
-            elif count < 5: # get 5 training data
+            elif count < 9: # get # training data
                 word = line.split()
                 indexText = word[0]+"-"+word[1]
                 if indexText not in wordList:
@@ -97,6 +106,7 @@ def write_dict2file(r, filename):
                 input_file.write('%s %s\n' % (key.replace(" ",""), ' '.join(str(v) for v in value.tolist())))
             
 if __name__ == "__main__":
+    numpy.set_printoptions(suppress=False)
     model = Word2Vec.load_word2vec_format(sys.argv[1], binary=True)
     wordDict = readQuestion(sys.argv[2], model)
     print "len(wordDict)", len(wordDict), wordDict.keys()

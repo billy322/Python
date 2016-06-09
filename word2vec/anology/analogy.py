@@ -28,8 +28,10 @@ def read_word_vecs(filename):
         ''' normalize weight vector '''
         wordVectors[word] = tempVec / numpy.linalg.norm(tempVec)
     
-    sys.stderr.write("Vectors read from: "+filename+" \n")
+    #sys.stderr.write("Vectors read from: "+filename+" \n")
     return wordVectors
+
+SVD_model = read_word_vecs("SVD.txt")
 
 def most_similar(self, positive=[], negative=[], topn=10, restrict_vocab=None):
         """
@@ -185,7 +187,6 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
             else: 
                 wordD_list.append(fullVariable[i])
         
-        SVD_model = read_word_vecs("SVD.txt")
         
         # add assessment item  Validated version 
          ##get all (d - b) . checked 
@@ -207,7 +208,10 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         elif wordC in self.vocab and wordA in self.vocab:
              vecA_weight = wordA_weight * vecA 
              vecC_weight = wordC_weight * vecC
-             mean = matutils.unitvec(array([ vecC_weight, vecA_weight ]).mean(axis=0)).astype(REAL)  # mean of c - a    
+             #mean = matutils.unitvec(array([ vecC_weight, vecA_weight ]).mean(axis=0)).astype(REAL)  # mean of c - a  
+             indexText = wordA+"-"+wordC
+             mean = SVD_model[indexText]
+             #print indexText, mean[0:5]
         else:
               raise KeyError("word '%s' not in vocabulary" % word) 
         dists1 = dot(tempLimit, mean)  # all row are zero, except those top10 word row  
@@ -271,7 +275,7 @@ def most_similar_direction(self, positive=[], negative=[], fullVariable=[], topn
         # combine 
         best1 = matutils.argsort(dists1, topn=topn, reverse=True)
         #print best1
-        if any(dists1[i] <= 0.3 for i in best1):
+        if any(dists1[i] <= 0 for i in best1):
             logger.debug("Direction_Bad: %s", \
                      sorted_vecDict) 
             writeList2File("direction.txt", ["000"])

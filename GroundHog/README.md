@@ -53,22 +53,13 @@ supported.
        $ pip install tables
 
 
-To install Groundhog in a multi-user setting (such as the LISA lab)
 
-``python setup.py develop --user``
-
-For general installation, simply use
-
-``python setup.py develop``
-
-NOTE: This will install the development version of Theano, if Theano is not
-currently installed.
 
 Neural Machine Translation (path = experiment/nmt')
 --------------------------
 
- 1. Run pre-processing with parallel corpus
- 2. Set path in state.py
- 3. Run train.py 
- 4. run sample.py
+ 1. Prepare corpus: Run pre-processing with parallel corpus (E.g. from wang2vec)
+ 2. Config model Paramters: Set path and parameters in state.py (e.g. update prototype_phrase_state in state.py)
+ 3. Build model: Run train.py (e.g. python train.py --proto=prototype_phrase_state)
+ 4. test: run sample.py
 

@@ -48,24 +48,10 @@ supported.
    <http://www.pytables.org/usersguide/installation.html>`_ for more
    details.
 
-3. For stability (and performance too) reasons, it is strongly
-   recommended that you install the C-Blosc library separately,
-   although you might want PyTables to use its internal C-Blosc
-   sources.
-
-3. Optionally, consider to install the LZO compression library and/or
-   the bzip2 compression library.
-
 4. Install!::
 
        $ pip install tables
 
-5. To run the test suite run::
-
-       $ python -m tables.tests.test_all
-
-   If there is some test that does not pass, please send the
-   complete output for tests back to us.
 
 To install Groundhog in a multi-user setting (such as the LISA lab)
 
@@ -78,8 +64,11 @@ For general installation, simply use
 NOTE: This will install the development version of Theano, if Theano is not
 currently installed.
 
-Neural Machine Translation
+Neural Machine Translation (path = experiment/nmt')
 --------------------------
 
-See experiments/nmt/README.md
+ 1. Run pre-processing with parallel corpus
+ 2. Set path in state.py
+ 3. Run train.py 
+ 4. run sample.py
 

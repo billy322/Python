@@ -27,6 +27,46 @@ purposes.
 
 Installation
 ------------
+To install pytable (important!!)
+
+1. Make sure you have HDF5 version 1.8.4 or above. HDF5 1.10.x is not
+supported.
+
+   On OSX you can install HDF5 using `Homebrew <http://brew.sh>`_::
+
+       $ brew tap homebrew/science
+       $ brew install hdf5
+
+   On ubuntu::
+
+       $ sudo apt-get install libhdf5-serial-dev
+
+   If you have the HDF5 library in some non-standard location (that
+   is, where the compiler and the linker can't find it) you can use
+   the environment variable `HDF5_DIR` to specify its location. See
+   `the manual
+   <http://www.pytables.org/usersguide/installation.html>`_ for more
+   details.
+
+3. For stability (and performance too) reasons, it is strongly
+   recommended that you install the C-Blosc library separately,
+   although you might want PyTables to use its internal C-Blosc
+   sources.
+
+3. Optionally, consider to install the LZO compression library and/or
+   the bzip2 compression library.
+
+4. Install!::
+
+       $ pip install tables
+
+5. To run the test suite run::
+
+       $ python -m tables.tests.test_all
+
+   If there is some test that does not pass, please send the
+   complete output for tests back to us.
+
 To install Groundhog in a multi-user setting (such as the LISA lab)
 
 ``python setup.py develop --user``

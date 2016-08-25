@@ -61,5 +61,5 @@ Neural Machine Translation (path = experiment/nmt')
  1. Prepare corpus: Run pre-processing with parallel corpus (E.g. from wang2vec)
  2. Config model Paramters: Set path and parameters in state.py (e.g. update prototype_phrase_state in state.py)
  3. Build model: Run train.py (e.g. python train.py --proto=prototype_phrase_state)
- 4. test: run sample.py
+ 4. test: run sample.py (elipse need to set to theano_flag in eclipse: http://computingstar.blogspot.hk/2012/12/theano-gpu-setting.html)
 
